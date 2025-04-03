@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clean any previous builds
+      - name: Clean previous builds
         run: |
           rm -rf .buildozer bin/*
 
@@ -30,6 +30,15 @@ jobs:
               libsqlite3-dev libjpeg-dev libz-dev \
               libncurses6 build-essential
 
+      - name: Install Android NDK 25b
+        run: |
+          mkdir -p ~/.android
+          wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip android-ndk-r25b-linux.zip -d ~/.android/
+          rm android-ndk-r25b-linux.zip
+          echo "ANDROID_NDK_HOME=~/.android/android-ndk-r25b" >> $GITHUB_ENV
+          echo "NDK_HOME=~/.android/android-ndk-r25b" >> $GITHUB_ENV
+
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip wheel setuptools virtualenv
@@ -37,21 +46,29 @@ jobs:
           pip install cython==0.29.33
           pip install buildozer
 
-      - name: Verify buildozer.spec
+      - name: Configure Buildozer
         run: |
-          # Check for duplicate options
-          if grep -q '^fullscreen' buildozer.spec && \
-             [ $(grep -c '^fullscreen' buildozer.spec) -gt 1 ]; then
-            echo "::error::Duplicate 'fullscreen' option found in buildozer.spec"
-            exit 1
-          fi
-          
-          # Check for other common duplicates
-          duplicates=$(grep -oE '^[a-zA-Z0-9._-]+' buildozer.spec | sort | uniq -d)
-          if [ -n "$duplicates" ]; then
-            echo "::error::Duplicate options found in buildozer.spec: $duplicates"
-            exit 1
-          fi
+          echo "[buildozer]" > buildozer.spec
+          echo "log_level = 2" >> buildozer.spec
+          echo "warn_on_root = 1" >> buildozer.spec
+          echo "" >> buildozer.spec
+          echo "[app]" >> buildozer.spec
+          echo "title = Hello World" >> buildozer.spec
+          echo "package.name = helloworld" >> buildozer.spec
+          echo "package.domain = org.test" >> buildozer.spec
+          echo "source.dir = ." >> buildozer.spec
+          echo "source.include_exts = py,png,jpg,kv,ttf" >> buildozer.spec
+          echo "version = 0.1" >> buildozer.spec
+          echo "requirements = python3==3.8.9,kivy==2.2.1,kivymd==1.1.1,openssl" >> buildozer.spec
+          echo "orientation = portrait" >> buildozer.spec
+          echo "fullscreen = 0" >> buildozer.spec
+          echo "android.permissions = INTERNET" >> buildozer.spec
+          echo "android.arch = arm64-v8a" >> buildozer.spec
+          echo "android.api = 31" >> buildozer.spec
+          echo "android.minapi = 21" >> buildozer.spec
+          echo "android.ndk = 25b" >> buildozer.spec
+          echo "android.sdk = 33" >> buildozer.spec
+          echo "android.accept_sdk_license = True" >> buildozer.spec
 
       - name: Run Buildozer
         run: |
