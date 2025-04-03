@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # Explicitly specify Ubuntu version
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -17,35 +17,14 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          # First update with retries
-          for i in {1..3}; do
-            sudo apt-get update -y && break || sleep 5
-          done
-          
-          # Install essential packages
-          sudo apt-get install -y --no-install-recommends \
-              git \
-              zip \
-              unzip \
-              openjdk-11-jdk \
-              python3-pip \
-              autoconf \
-              libtool \
-              pkg-config \
-              zlib1g-dev \
-              cmake \
-              libffi-dev \
-              libssl-dev \
-              libxml2-dev \
-              libxslt1-dev \
-              python3-dev \
-              libsqlite3-dev \
-              libjpeg-dev \
-              libz-dev \
-              libncurses6  # Modern alternative to libtinfo5
-
-          # Install build essentials
-          sudo apt-get install -y build-essential
+          sudo apt-get update -y
+          sudo apt-get install -y \
+              git zip unzip openjdk-11-jdk \
+              python3-pip autoconf libtool pkg-config \
+              zlib1g-dev cmake libffi-dev libssl-dev \
+              libxml2-dev libxslt1-dev python3-dev \
+              libsqlite3-dev libjpeg-dev libz-dev \
+              libncurses6 build-essential
 
       - name: Install Python dependencies
         run: |
@@ -54,9 +33,15 @@ jobs:
           pip install cython==0.29.33
           pip install buildozer
 
+      - name: Validate buildozer.spec
+        run: |
+          if grep -q '^fullscreen' buildozer.spec && grep -A5 '^fullscreen' buildozer.spec | grep -q '^fullscreen'; then
+            echo "Error: Duplicate 'fullscreen' option found in buildozer.spec"
+            exit 1
+          fi
+
       - name: Run Buildozer
         run: |
-          buildozer init
           buildozer -v android debug
 
       - name: Upload APK artifact
