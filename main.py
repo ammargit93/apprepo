@@ -3,7 +3,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from kivymd.app import MDApp
 from pymongo import MongoClient
 
-client = MongoClient("mongodb://localhost:27017/")  
+client = MongoClient("mongodb+srv://ammar:ObxTTUFj8gCDJek7@cluster0.o2qwc.mongodb.net/")  
 db = client["appDB"]  
 users_collection = db["users"]
  
