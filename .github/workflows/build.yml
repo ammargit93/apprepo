@@ -1,20 +1,58 @@
+name: Build Kivy/KivyMD APK
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build APK
-        uses: digreatbrian/buildozer-action@v2
-        with:
-          python-version: 3.8
-          buildozer-cmd: buildozer -v android debug
 
-      - name: Upload artifacts
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+              git \
+              zip \
+              unzip \
+              openjdk-11-jdk \
+              python3-pip \
+              autoconf \
+              libtool \
+              pkg-config \
+              zlib1g-dev \
+              libncurses-dev \  # This replaces all ncurses-related packages
+              cmake \
+              libffi-dev \
+              libssl-dev \
+              libxml2-dev \
+              libxslt1-dev \
+              python3-dev \
+              libsqlite3-dev \
+              libjpeg-dev \
+              libz-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools virtualenv
+          pip install kivy==2.2.1 kivymd==1.1.1
+          pip install cython==0.29.33
+          pip install buildozer
+
+      - name: Run Buildozer
+        run: |
+          buildozer init
+          buildozer -v android debug
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: package
-          path: ./bin/*.apk
+          name: helloworld-app
+          path: bin/*.apk
