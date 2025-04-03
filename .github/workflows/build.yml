@@ -30,17 +30,16 @@ jobs:
               zlib1g-dev \
               libncurses5-dev \
               libncursesw5-dev \
-              libtinfo5 \
+              libtinfo6 \  # Changed from libtinfo5
               cmake \
               libffi-dev \
               libssl-dev
-
-      - name: Install Python dependencies
-        run: |
-          pip install --upgrade pip wheel setuptools virtualenv
-          pip install kivy==2.2.1 kivymd==1.1.1
-          pip install cython==0.29.33
-          pip install buildozer
+            - name: Install Python dependencies
+              run: |
+                pip install --upgrade pip wheel setuptools virtualenv
+                pip install kivy==2.2.1 kivymd==1.1.1
+                pip install cython==0.29.33
+                pip install buildozer
 
       - name: Run Buildozer
         run: |
