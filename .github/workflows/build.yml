@@ -1,27 +1,30 @@
-on:
-  push:
-    branches: [ main ]
-
+name: Build Kivy APK for Poco C31
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y libtinfo-dev
-          sudo apt install -y build-essential python3-dev python3-pip
+          sudo apt install -y openjdk-11-jdk zlib1g-dev python3-pip
+          pip install buildozer
 
-      - name: Build APK
-        uses: digreatbrian/buildozer-action@v2
-        with:
-          python-version: 3.8
-          buildozer-cmd: buildozer -v android debug
+      - name: Build signed APK
+        run: |
+          echo "android.arch = armeabi-v7a" >> buildozer.spec
+          echo "android.minapi = 29" >> buildozer.spec
+          buildozer android release
 
-      - name: Upload artifacts
+      - name: Sign APK (critical for Poco)
+        run: |
+          keytool -genkey -v -keystore my.keystore -alias myalias -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Unknown"
+          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my.keystore -storepass android ./bin/*.apk myalias
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: package
-          path: ./bin/*.apk
+          name: Poco-App
+          path: ./bin/*-release-unsigned.apk
