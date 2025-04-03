@@ -9,22 +9,50 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y openjdk-11-jdk zlib1g-dev python3-pip
+          sudo apt install -y \
+            openjdk-11-jdk \
+            zlib1g-dev \
+            python3-pip \
+            cython3 \
+            libncurses5-dev \
+            git \
+            unzip
+          pip install --upgrade pip wheel setuptools
           pip install buildozer
 
-      - name: Build signed APK
+      - name: Configure buildozer.spec
         run: |
           echo "android.arch = armeabi-v7a" >> buildozer.spec
           echo "android.minapi = 29" >> buildozer.spec
-          buildozer android release
+          echo "android.release_artifact = .apk" >> buildozer.spec
+          echo "p4a.branch = master" >> buildozer.spec
 
-      - name: Sign APK (critical for Poco)
+      - name: Build release APK
         run: |
-          keytool -genkey -v -keystore my.keystore -alias myalias -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Unknown"
-          jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my.keystore -storepass android ./bin/*.apk myalias
+          buildozer android clean
+          buildozer -v android release
+
+      - name: Sign APK
+        run: |
+          keytool -genkey -v \
+            -keystore my-release-key.keystore \
+            -alias myalias \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown"
+          jarsigner -verbose \
+            -sigalg SHA1withRSA \
+            -digestalg SHA1 \
+            -keystore my-release-key.keystore \
+            -storepass android \
+            ./bin/*.apk \
+            myalias
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Poco-App
-          path: ./bin/*-release-unsigned.apk
+          name: Poco-App-Release
+          path: ./bin/*.apk
