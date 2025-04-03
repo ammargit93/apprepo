@@ -17,7 +17,7 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get update -y
           sudo apt-get install -y \
               git \
               zip \
@@ -28,18 +28,23 @@ jobs:
               libtool \
               pkg-config \
               zlib1g-dev \
-              libncurses5-dev \
-              libncursesw5-dev \
-              libtinfo-dev \ 
+              libncurses-dev \  # Replaces individual ncurses packages
               cmake \
               libffi-dev \
-              libssl-dev
-            - name: Install Python dependencies
-              run: |
-                pip install --upgrade pip wheel setuptools virtualenv
-                pip install kivy==2.2.1 kivymd==1.1.1
-                pip install cython==0.29.33
-                pip install buildozer
+              libssl-dev \
+              libxml2-dev \
+              libxslt1-dev \
+              python3-dev \
+              libsqlite3-dev \
+              libjpeg-dev \
+              libz-dev
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools virtualenv
+          pip install kivy==2.2.1 kivymd==1.1.1
+          pip install cython==0.29.33
+          pip install buildozer
 
       - name: Run Buildozer
         run: |
