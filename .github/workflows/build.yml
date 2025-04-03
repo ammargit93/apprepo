@@ -10,6 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clean any previous builds
+        run: |
+          rm -rf .buildozer bin/*
+
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
@@ -33,10 +37,19 @@ jobs:
           pip install cython==0.29.33
           pip install buildozer
 
-      - name: Validate buildozer.spec
+      - name: Verify buildozer.spec
         run: |
-          if grep -q '^fullscreen' buildozer.spec && grep -A5 '^fullscreen' buildozer.spec | grep -q '^fullscreen'; then
-            echo "Error: Duplicate 'fullscreen' option found in buildozer.spec"
+          # Check for duplicate options
+          if grep -q '^fullscreen' buildozer.spec && \
+             [ $(grep -c '^fullscreen' buildozer.spec) -gt 1 ]; then
+            echo "::error::Duplicate 'fullscreen' option found in buildozer.spec"
+            exit 1
+          fi
+          
+          # Check for other common duplicates
+          duplicates=$(grep -oE '^[a-zA-Z0-9._-]+' buildozer.spec | sort | uniq -d)
+          if [ -n "$duplicates" ]; then
+            echo "::error::Duplicate options found in buildozer.spec: $duplicates"
             exit 1
           fi
 
