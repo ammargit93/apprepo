@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,ttf
 version = 0.1
 requirements = python3==3.8.9,kivy==2.2.1,kivymd==1.1.1,openssl
 orientation = portrait
-fullscreen = 0  # Keep only one instance of this
+fullscreen = 0  # Only one instance of this parameter
 android.permissions = INTERNET
 android.arch = arm64-v8a
 android.api = 31
