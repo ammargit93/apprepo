@@ -30,7 +30,7 @@ jobs:
               zlib1g-dev \
               libncurses5-dev \
               libncursesw5-dev \
-              libtinfo6 \  # Changed from libtinfo5
+              libtinfo-dev \ 
               cmake \
               libffi-dev \
               libssl-dev
