@@ -7,12 +7,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 45  # Increased timeout for first build
+    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clean previous builds
+      - name: Clean environment
         run: |
           rm -rf .buildozer bin/*
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/*
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
@@ -33,11 +36,24 @@ jobs:
       - name: Install Android NDK 25b
         run: |
           mkdir -p ~/.android
-          wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-          unzip android-ndk-r25b-linux.zip -d ~/.android/
+          wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+          unzip -q android-ndk-r25b-linux.zip -d ~/.android/
           rm android-ndk-r25b-linux.zip
-          echo "ANDROID_NDK_HOME=~/.android/android-ndk-r25b" >> $GITHUB_ENV
-          echo "NDK_HOME=~/.android/android-ndk-r25b" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/.android/android-ndk-r25b" >> $GITHUB_ENV
+          echo "NDK_HOME=$HOME/.android/android-ndk-r25b" >> $GITHUB_ENV
+          echo "PATH=$HOME/.android/android-ndk-r25b:$PATH" >> $GITHUB_ENV
+
+      - name: Install Android SDK and tools
+        run: |
+          mkdir -p ~/.android
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip -q commandlinetools-linux-*.zip -d ~/.android/cmdline-tools
+          mv ~/.android/cmdline-tools/cmdline-tools ~/.android/cmdline-tools/latest
+          rm commandlinetools-linux-*.zip
+          
+          yes | ~/.android/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/.android/sdk "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+          echo "ANDROID_SDK_ROOT=$HOME/.android/sdk" >> $GITHUB_ENV
+          echo "PATH=$HOME/.android/sdk/platform-tools:$PATH" >> $GITHUB_ENV
 
       - name: Install Python dependencies
         run: |
@@ -48,34 +64,46 @@ jobs:
 
       - name: Configure Buildozer
         run: |
-          echo "[buildozer]" > buildozer.spec
-          echo "log_level = 2" >> buildozer.spec
-          echo "warn_on_root = 1" >> buildozer.spec
-          echo "" >> buildozer.spec
-          echo "[app]" >> buildozer.spec
-          echo "title = Hello World" >> buildozer.spec
-          echo "package.name = helloworld" >> buildozer.spec
-          echo "package.domain = org.test" >> buildozer.spec
-          echo "source.dir = ." >> buildozer.spec
-          echo "source.include_exts = py,png,jpg,kv,ttf" >> buildozer.spec
-          echo "version = 0.1" >> buildozer.spec
-          echo "requirements = python3==3.8.9,kivy==2.2.1,kivymd==1.1.1,openssl" >> buildozer.spec
-          echo "orientation = portrait" >> buildozer.spec
-          echo "fullscreen = 0" >> buildozer.spec
-          echo "android.permissions = INTERNET" >> buildozer.spec
-          echo "android.arch = arm64-v8a" >> buildozer.spec
-          echo "android.api = 31" >> buildozer.spec
-          echo "android.minapi = 21" >> buildozer.spec
-          echo "android.ndk = 25b" >> buildozer.spec
-          echo "android.sdk = 33" >> buildozer.spec
-          echo "android.accept_sdk_license = True" >> buildozer.spec
+          cat > buildozer.spec <<EOL
+[app]
+title = Hello World
+package.name = helloworld
+package.domain = org.test
+source.dir = .
+source.include_exts = py,png,jpg,kv,ttf
+version = 0.1
+requirements = python3==3.8.9,kivy==2.2.1,kivymd==1.1.1,openssl
+orientation = portrait
+fullscreen = 0
+android.permissions = INTERNET
+android.arch = arm64-v8a
+android.api = 31
+android.minapi = 21
+android.ndk = $HOME/.android/android-ndk-r25b
+android.sdk = $HOME/.android/sdk
+android.accept_sdk_license = True
 
-      - name: Run Buildozer
+[buildozer]
+log_level = 2
+warn_on_root = 1
+EOL
+
+      - name: Run Buildozer with debug
         run: |
-          buildozer -v android debug
+          buildozer -v android clean
+          buildozer -v android debug 2>&1 | tee build.log
+          grep -i error build.log && exit 1 || exit 0
 
       - name: Upload APK artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: helloworld-app
           path: bin/*.apk
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
